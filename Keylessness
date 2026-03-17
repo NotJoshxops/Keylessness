@@ -1,0 +1,249 @@
+local CoreGui = game:GetService("CoreGui")
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+
+-- ==========================================
+-- 1. ANTI-OVERLAP CLEANUP
+-- ==========================================
+local hubName = "KeylessnessHub"
+pcall(function() if CoreGui:FindFirstChild(hubName) then CoreGui[hubName]:Destroy() end end)
+pcall(function() if player:WaitForChild("PlayerGui"):FindFirstChild(hubName) then player.PlayerGui[hubName]:Destroy() end end)
+
+local verifiedTick = utf8.char(0xE000)
+
+-- ==========================================
+-- 2. PREMIUM UI CONTAINER
+-- ==========================================
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = hubName
+ScreenGui.ResetOnSpawn = false
+ScreenGui.DisplayOrder = 999
+local success, _ = pcall(function() ScreenGui.Parent = CoreGui end)
+if not success then ScreenGui.Parent = player:WaitForChild("PlayerGui") end
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 220, 0, 485) -- Height increased for 7 buttons
+MainFrame.Position = UDim2.new(0.5, -110, 0.2, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true 
+MainFrame.ClipsDescendants = true 
+MainFrame.Parent = ScreenGui
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
+
+local MainStroke = Instance.new("UIStroke", MainFrame)
+MainStroke.Color = Color3.fromRGB(45, 45, 55)
+MainStroke.Thickness = 1
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.BackgroundTransparency = 1
+Title.Text = "KEYLESSNESS"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 15
+Title.Parent = MainFrame
+
+local Underline = Instance.new("Frame")
+Underline.Size = UDim2.new(0, 100, 0, 2)
+Underline.Position = UDim2.new(0.5, -50, 0, 32)
+Underline.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+Underline.BorderSizePixel = 0
+Underline.Parent = MainFrame
+
+-- Premium Controls
+local Close = Instance.new("TextButton")
+Close.Size = UDim2.new(0, 24, 0, 24)
+Close.Position = UDim2.new(1, -30, 0, 8)
+Close.BackgroundColor3 = Color3.fromRGB(255, 75, 75)
+Close.Text = "✕"
+Close.TextColor3 = Color3.fromRGB(20, 20, 20)
+Close.Font = Enum.Font.GothamBold
+Close.TextSize = 12
+Close.Parent = MainFrame
+Instance.new("UICorner", Close).CornerRadius = UDim.new(1, 0)
+
+local Mini = Instance.new("TextButton")
+Mini.Size = UDim2.new(0, 24, 0, 24)
+Mini.Position = UDim2.new(1, -60, 0, 8)
+Mini.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
+Mini.Text = "—"
+Mini.TextColor3 = Color3.fromRGB(20, 20, 20)
+Mini.Font = Enum.Font.GothamBold
+Mini.TextSize = 10
+Mini.Parent = MainFrame
+Instance.new("UICorner", Mini).CornerRadius = UDim.new(1, 0)
+
+-- ==========================================
+-- 3. CONFIRMATION POPUP
+-- ==========================================
+local ConfirmFrame = Instance.new("Frame")
+ConfirmFrame.Size = UDim2.new(1, 0, 1, -40)
+ConfirmFrame.Position = UDim2.new(0, 0, 0, 40)
+ConfirmFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
+ConfirmFrame.BorderSizePixel = 0
+ConfirmFrame.Visible = false
+ConfirmFrame.ZIndex = 20
+ConfirmFrame.Parent = MainFrame
+
+local ConfirmMsg = Instance.new("TextLabel")
+ConfirmMsg.Size = UDim2.new(1, -20, 0, 80)
+ConfirmMsg.Position = UDim2.new(0, 10, 0, 40)
+ConfirmMsg.BackgroundTransparency = 1
+ConfirmMsg.Text = "Are you sure?"
+ConfirmMsg.TextColor3 = Color3.fromRGB(255, 255, 255)
+ConfirmMsg.Font = Enum.Font.GothamMedium
+ConfirmMsg.TextSize = 13
+ConfirmMsg.TextWrapped = true
+ConfirmMsg.ZIndex = 21
+ConfirmMsg.Parent = ConfirmFrame
+
+local YesBtn = Instance.new("TextButton")
+YesBtn.Size = UDim2.new(0, 80, 0, 35)
+YesBtn.Position = UDim2.new(0.5, -85, 0, 140)
+YesBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+YesBtn.Text = "YES"
+YesBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+YesBtn.Font = Enum.Font.GothamBold
+YesBtn.TextSize = 12
+YesBtn.ZIndex = 21
+YesBtn.Parent = ConfirmFrame
+Instance.new("UICorner", YesBtn).CornerRadius = UDim.new(0, 6)
+
+local NoBtn = Instance.new("TextButton")
+NoBtn.Size = UDim2.new(0, 80, 0, 35)
+NoBtn.Position = UDim2.new(0.5, 5, 0, 140)
+NoBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+NoBtn.Text = "NO"
+NoBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+NoBtn.Font = Enum.Font.GothamBold
+NoBtn.TextSize = 12
+NoBtn.ZIndex = 21
+NoBtn.Parent = ConfirmFrame
+Instance.new("UICorner", NoBtn).CornerRadius = UDim.new(0, 6)
+
+local pendingScript = nil
+
+YesBtn.MouseButton1Click:Connect(function()
+    ConfirmFrame.Visible = false
+    if pendingScript then pendingScript() pendingScript = nil end
+end)
+
+NoBtn.MouseButton1Click:Connect(function()
+    ConfirmFrame.Visible = false
+    pendingScript = nil
+end)
+
+-- Info Text
+local InfoLabel = Instance.new("TextLabel")
+InfoLabel.Size = UDim2.new(0, 200, 0, 45)
+InfoLabel.Position = UDim2.new(0.5, -100, 0, 430) 
+InfoLabel.BackgroundTransparency = 1
+InfoLabel.Text = "" 
+InfoLabel.TextColor3 = Color3.fromRGB(0, 150, 255)
+InfoLabel.Font = Enum.Font.Gotham
+InfoLabel.TextSize = 8.5
+InfoLabel.TextWrapped = true
+InfoLabel.Visible = false
+InfoLabel.Parent = MainFrame
+
+-- ==========================================
+-- 4. BUTTON CREATOR
+-- ==========================================
+local function CreateBtn(name, sub, pos, loadstringURL, hasTick)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 190, 0, 46)
+    btn.Position = pos
+    btn.BackgroundColor3 = Color3.fromRGB(25, 25, 32)
+    btn.Text = ""
+    btn.Parent = MainFrame
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+    Instance.new("UIStroke", btn).Color = Color3.fromRGB(40, 40, 50)
+
+    local t1 = Instance.new("TextLabel")
+    t1.Size = UDim2.new(1, 0, 0.6, 0)
+    t1.BackgroundTransparency = 1
+    t1.Text = hasTick and (name .. " " .. verifiedTick) or name
+    t1.TextColor3 = Color3.fromRGB(255, 255, 255)
+    t1.Font = Enum.Font.GothamBold
+    t1.TextSize = 10
+    t1.Parent = btn
+
+    local iBtn = Instance.new("TextButton")
+    iBtn.Size = UDim2.new(0, 16, 0, 16)
+    iBtn.Position = UDim2.new(1, -24, 0.5, -8)
+    iBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+    iBtn.Text = "i"
+    iBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    iBtn.Font = Enum.Font.GothamBold
+    iBtn.TextSize = 10
+    iBtn.Parent = btn
+    Instance.new("UICorner", iBtn).CornerRadius = UDim.new(1, 0)
+    
+    iBtn.MouseButton1Click:Connect(function() 
+        if hasTick then
+            InfoLabel.Text = "Working + No Malware.\nIf verified, it's safe—but be careful!"
+        else
+            InfoLabel.Text = "Everything is working, but the UI/GUI might be bad or have glitches in some spots."
+        end
+        InfoLabel.Visible = not InfoLabel.Visible 
+    end)
+
+    local t2 = Instance.new("TextLabel")
+    t2.Size = UDim2.new(1, -30, 0.4, 0)
+    t2.Position = UDim2.new(0, 15, 0.5, 0)
+    t2.BackgroundTransparency = 1
+    t2.Text = sub
+    t2.TextColor3 = Color3.fromRGB(150, 150, 150)
+    t2.Font = Enum.Font.Gotham
+    t2.TextSize = 8
+    t2.TextWrapped = true
+    t2.Parent = btn
+
+    btn.MouseButton1Click:Connect(function()
+        pendingScript = function() loadstring(game:HttpGet(loadstringURL))() end
+        ConfirmMsg.Text = "Confirm execution for:\n" .. name
+        ConfirmFrame.Visible = true
+    end)
+end
+
+-- ==========================================
+-- 5. SCRIPTS PLACEMENT
+-- ==========================================
+CreateBtn("RIVALS", "Noks-Hub Keyless V2", UDim2.new(0.5, -95, 0, 52), "https://rawscripts.net/raw/RIVALS-Noks-hub-keyless-v2-112582", false)
+CreateBtn("99 NIGHTS IN THE FOREST", "VW-Add Script", UDim2.new(0.5, -95, 0, 104), "https://raw.githubusercontent.com/VapeVoidware/VW-Add/main/nightsintheforest.lua", true)
+CreateBtn("M.E.G ENDLESS REALITY", "My Own Script", UDim2.new(0.5, -95, 0, 156), "https://raw.githubusercontent.com/NotJoshxops/MER/main/Coolest", true)
+CreateBtn("BROOKHAVEN", "MarcillisePex Gui", UDim2.new(0.5, -95, 0, 208), "https://raw.githubusercontent.com/TheDarkoneMarcillisePex/Other-Scripts/main/Brook%20Haven%20Gui", false)
+CreateBtn("SWING OBBY BRAINROT", "Pastebin Script", UDim2.new(0.5, -95, 0, 260), "https://pastebin.com/raw/VJVkivY2", true)
+CreateBtn("BLOX FRUITS", "(won't auto active for 2nd sea and 3rd sea)", UDim2.new(0.5, -95, 0, 312), "https://raw.githubusercontent.com/Overgustx2/Main/refs/heads/main/BloxFruits_25.html", false)
+CreateBtn("BLADE BALL", "Auto-Parry Keyless", UDim2.new(0.5, -95, 0, 364), "https://rawscripts.net/raw/Blade-Ball-Auto-Parry-Keyless-128675", true)
+
+-- Functional Controls
+Close.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
+local min = false
+Mini.MouseButton1Click:Connect(function()
+    min = not min
+    MainFrame:TweenSize(min and UDim2.new(0, 220, 0, 40) or UDim2.new(0, 220, 0, 485), "Out", "Quart", 0.3, true)
+    if min then ConfirmFrame.Visible = false end
+end)
+
+-- ==========================================
+-- 6. AUTO-LOADER
+-- ==========================================
+local pId = game.PlaceId
+if pId == 17625359962 then 
+    loadstring(game:HttpGet("https://rawscripts.net/raw/RIVALS-Noks-hub-keyless-v2-112582"))()
+elseif pId == 126509999114328 then 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/VapeVoidware/VW-Add/main/nightsintheforest.lua", true))()
+elseif pId == 99078474560152 or pId == 98629859043211 then 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/NotJoshxops/MER/main/Coolest", true))()
+elseif pId == 4924922222 then 
+    loadstring(game:HttpGet('https://raw.githubusercontent.com/TheDarkoneMarcillisePex/Other-Scripts/main/Brook%20Haven%20Gui'))()
+elseif pId == 114640202062357 then 
+    loadstring(game:HttpGet("https://pastebin.com/raw/VJVkivY2"))()
+elseif pId == 2753915549 then 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Overgustx2/Main/refs/heads/main/BloxFruits_25.html"))()
+elseif pId == 13772394625 then 
+    loadstring(game:HttpGet("https://rawscripts.net/raw/Blade-Ball-Auto-Parry-Keyless-128675"))()
+end
