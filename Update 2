@@ -1,0 +1,264 @@
+-- Persistent Auto-Loader
+if not game:IsLoaded() then game.Loaded:Wait() end
+
+local CoreGui = game:GetService("CoreGui")
+local Players = game:GetService("Players")
+local StarterGui = game:GetService("StarterGui")
+local TeleportService = game:GetService("TeleportService")
+local Lighting = game:GetService("Lighting")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local Stats = game:GetService("Stats")
+local HttpService = game:GetService("HttpService")
+local UserInputService = game:GetService("UserInputService")
+local player = Players.LocalPlayer
+
+-- ==========================================
+-- 1. SAVE SYSTEM
+-- ==========================================
+local SaveFile = "KeylessnessThemes.json"
+local DefaultSettings = {SelectedTheme = "Normal"}
+
+local function SaveSettings(tbl)
+    pcall(function() writefile(SaveFile, HttpService:JSONEncode(tbl)) end)
+end
+
+local function LoadSettings()
+    local s, res = pcall(function() return readfile(SaveFile) end)
+    if s then return HttpService:JSONDecode(res) end
+    return DefaultSettings
+end
+
+local UserSettings = LoadSettings()
+
+-- ==========================================
+-- 2. THEMES & VIBES
+-- ==========================================
+local Themes = {
+    ["Wannabe Hecker"] = {bg = Color3.fromRGB(0, 0, 0), top = Color3.fromRGB(5, 20, 5), accent = Color3.fromRGB(0, 255, 0), btn = Color3.fromRGB(10, 30, 10)},
+    ["Normal"] = {bg = Color3.fromRGB(15, 15, 22), top = Color3.fromRGB(20, 20, 30), accent = Color3.fromRGB(88, 101, 242), btn = Color3.fromRGB(28, 28, 38)},
+    ["Beach"] = {bg = Color3.fromRGB(244, 226, 198), top = Color3.fromRGB(194, 178, 128), accent = Color3.fromRGB(0, 191, 255), btn = Color3.fromRGB(214, 196, 168)},
+    ["Baby Oil"] = {bg = Color3.fromRGB(245, 245, 250), top = Color3.fromRGB(225, 230, 240), accent = Color3.fromRGB(180, 210, 255), btn = Color3.fromRGB(235, 240, 250)},
+    ["Vamp"] = {bg = Color3.fromRGB(5, 5, 5), top = Color3.fromRGB(15, 0, 0), accent = Color3.fromRGB(255, 0, 0), btn = Color3.fromRGB(25, 5, 5)}
+}
+
+local function Notify(title, text)
+    StarterGui:SetCore("SendNotification", {Title = title, Text = text, Duration = 3})
+end
+
+local function Tween(obj, props, time)
+    TweenService:Create(obj, TweenInfo.new(time or 0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), props):Play()
+end
+
+-- ==========================================
+-- 3. UI SETUP
+-- ==========================================
+local hubName = "KeylessnessHub_V10"
+if CoreGui:FindFirstChild(hubName) then CoreGui[hubName]:Destroy() end
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = hubName; ScreenGui.ResetOnSpawn = false; ScreenGui.Parent = CoreGui
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 270, 0, 460); MainFrame.Position = UDim2.new(0.5, -135, 0.3, 0)
+MainFrame.BorderSizePixel = 0; MainFrame.Active = true; MainFrame.Draggable = true; MainFrame.ClipsDescendants = true; MainFrame.Parent = ScreenGui
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 14)
+
+local MainStroke = Instance.new("UIStroke", MainFrame)
+MainStroke.Thickness = 1.5; MainStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
+local Header = Instance.new("Frame")
+Header.Size = UDim2.new(1, 0, 0, 100); Header.BorderSizePixel = 0; Header.Parent = MainFrame
+Instance.new("UICorner", Header).CornerRadius = UDim.new(0, 14)
+
+local PFP = Instance.new("ImageLabel")
+PFP.Size = UDim2.new(0, 45, 0, 45); PFP.Position = UDim2.new(0, 12, 0, 12); PFP.Image = "http://www.roblox.com/headshot-thumbnail/image?userId="..player.UserId.."&width=420&height=420&format=png"; PFP.Parent = Header
+Instance.new("UICorner", PFP).CornerRadius = UDim.new(1, 0)
+
+local DisplayName = Instance.new("TextLabel")
+DisplayName.Size = UDim2.new(1, -110, 0, 22); DisplayName.Position = UDim2.new(0, 65, 0, 12); DisplayName.BackgroundTransparency = 1; DisplayName.Text = player.DisplayName; DisplayName.Font = "GothamBold"; DisplayName.TextSize = 14; DisplayName.TextXAlignment = "Left"; DisplayName.Parent = Header
+
+local StatLabel = Instance.new("TextLabel")
+StatLabel.Size = UDim2.new(1, -110, 0, 20); StatLabel.Position = UDim2.new(0, 65, 0, 30); StatLabel.BackgroundTransparency = 1; StatLabel.Font = "GothamBold"; StatLabel.TextSize = 10; StatLabel.TextXAlignment = "Left"; StatLabel.Parent = Header
+
+-- DISCORD BUTTON (PERMANENT)
+local DCBtn = Instance.new("TextButton")
+DCBtn.Size = UDim2.new(1, -24, 0, 30); DCBtn.Position = UDim2.new(0, 12, 0, 58); DCBtn.BackgroundTransparency = 1; DCBtn.Text = "Join our Discord: discord.gg/srsKaTMqdr"; DCBtn.Font = Enum.Font.Gotham; DCBtn.TextSize = 10; DCBtn.Parent = Header
+DCBtn.MouseButton1Click:Connect(function() setclipboard("https://discord.gg/srsKaTMqdr"); Notify("Discord", "Link copied!") end)
+
+local Close = Instance.new("TextButton")
+Close.Size = UDim2.new(0, 26, 0, 26); Close.Position = UDim2.new(1, -38, 0, 15); Close.BackgroundColor3 = Color3.fromRGB(220, 60, 60); Close.Text = "×"; Close.TextColor3 = Color3.fromRGB(255,255,255); Close.Font = "GothamBold"; Close.TextSize = 20; Close.Parent = Header; Instance.new("UICorner", Close).CornerRadius = UDim.new(0, 8)
+
+local Mini = Instance.new("TextButton")
+Mini.Size = UDim2.new(0, 26, 0, 26); Mini.Position = UDim2.new(1, -70, 0, 15); Mini.Text = "—"; Mini.TextColor3 = Color3.fromRGB(255,255,255); Mini.Font = "GothamBold"; Mini.Parent = Header; Instance.new("UICorner", Mini).CornerRadius = UDim.new(0, 8)
+
+local TabFrame = Instance.new("Frame")
+TabFrame.Size = UDim2.new(1, 0, 0, 35); TabFrame.Position = UDim2.new(0, 0, 0, 100); TabFrame.BorderSizePixel = 0; TabFrame.Parent = MainFrame
+
+local TabIndicator = Instance.new("Frame")
+TabIndicator.Size = UDim2.new(0.33, -10, 0, 2); TabIndicator.Position = UDim2.new(0, 5, 1, -2); TabIndicator.BorderSizePixel = 0; TabIndicator.Parent = TabFrame
+
+-- THEME APPLIER
+local function ApplyTheme(themeName)
+    local data = Themes[themeName] or Themes["Normal"]
+    local isLight = (data.bg.R + data.bg.G + data.bg.B) > 1.5
+    local textCol = isLight and Color3.fromRGB(40, 40, 50) or Color3.fromRGB(255, 255, 255)
+    local subCol = isLight and Color3.fromRGB(80, 80, 100) or Color3.fromRGB(160, 160, 160)
+
+    Tween(MainFrame, {BackgroundColor3 = data.bg})
+    Tween(Header, {BackgroundColor3 = data.top})
+    Tween(TabFrame, {BackgroundColor3 = data.top})
+    Tween(StatLabel, {TextColor3 = data.accent})
+    Tween(Mini, {BackgroundColor3 = data.accent})
+    Tween(DisplayName, {TextColor3 = textCol})
+    Tween(DCBtn, {TextColor3 = subCol})
+    Tween(TabIndicator, {BackgroundColor3 = data.accent})
+    MainStroke.Color = data.accent
+    
+    for _, v in pairs(MainFrame:GetDescendants()) do
+        if v:IsA("TextButton") and v.Name == "ScriptBtn" then
+            Tween(v, {BackgroundColor3 = data.btn})
+            if v:FindFirstChild("T1") then Tween(v.T1, {TextColor3 = textCol}) end
+            if v:FindFirstChild("T2") then Tween(v.T2, {TextColor3 = subCol}) end
+        elseif v:IsA("TextButton") and v.Parent == TabFrame then
+            Tween(v, {TextColor3 = subCol})
+        end
+    end
+    UserSettings.SelectedTheme = themeName; SaveSettings(UserSettings)
+end
+
+-- BUTTON CREATOR
+local function CreateBtn(parent, name, sub, func, themeData)
+    local btn = Instance.new("TextButton")
+    btn.Name = "ScriptBtn"; btn.Size = UDim2.new(0, 240, 0, 55); btn.Text = ""; btn.Parent = parent; Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 10)
+    local t1 = Instance.new("TextLabel"); t1.Name = "T1"; t1.Size = UDim2.new(1, -24, 0, 20); t1.Position = UDim2.new(0, 12, 0.22, 0); t1.BackgroundTransparency = 1; t1.Text = name; t1.Font = "GothamBold"; t1.TextSize = 11; t1.TextXAlignment = "Left"; t1.Parent = btn
+    local t2 = Instance.new("TextLabel"); t2.Name = "T2"; t2.Size = UDim2.new(1, -24, 0, 15); t2.Position = UDim2.new(0, 12, 0.58, 0); t2.BackgroundTransparency = 1; t2.Text = sub; t2.Font = "Gotham"; t2.TextSize = 9; t2.TextXAlignment = "Left"; t2.Parent = btn
+    if themeData then
+        local p = Instance.new("Frame"); p.Size = UDim2.new(0, 16, 0, 16); p.Position = UDim2.new(1, -28, 0.5, -8); p.BackgroundColor3 = themeData.accent; p.Parent = btn; Instance.new("UICorner", p).CornerRadius = UDim.new(1, 0)
+    end
+    btn.MouseButton1Click:Connect(function() func(t2) end)
+end
+
+-- CONTAINER & TABS
+local Container = Instance.new("Frame")
+Container.Size = UDim2.new(1, 0, 1, -135); Container.Position = UDim2.new(0, 0, 0, 135); Container.BackgroundTransparency = 1; Container.ClipsDescendants = true; Container.Parent = MainFrame
+
+local function CreateScroll(name)
+    local s = Instance.new("ScrollingFrame"); s.Name = name; s.Size = UDim2.new(1, 0, 1, 0); s.BackgroundTransparency = 1; s.BorderSizePixel = 0; s.ScrollBarThickness = 0; s.Visible = false; s.Parent = Container
+    local layout = Instance.new("UIListLayout", s); layout.HorizontalAlignment = "Center"; layout.Padding = UDim.new(0, 10)
+    Instance.new("UIPadding", s).PaddingTop = UDim.new(0, 10)
+    layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function() s.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 20) end)
+    return s
+end
+
+local ScriptsScroll = CreateScroll("ScriptsScroll"); ScriptsScroll.Visible = true
+local UniScroll = CreateScroll("UniScroll")
+local ThemeScroll = CreateScroll("ThemeScroll")
+
+local function CreateTabBtn(name, pos, width, target)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(width, 0, 1, 0); btn.Position = pos; btn.BackgroundTransparency = 1; btn.Text = name; btn.Font = "GothamBold"; btn.TextSize = 9; btn.Parent = TabFrame
+    btn.MouseButton1Click:Connect(function()
+        ScriptsScroll.Visible = (target == ScriptsScroll)
+        UniScroll.Visible = (target == UniScroll)
+        ThemeScroll.Visible = (target == ThemeScroll)
+        Tween(TabIndicator, {Position = UDim2.new(pos.X.Scale, 5, 1, -2)})
+        ApplyTheme(UserSettings.SelectedTheme)
+    end)
+    return btn
+end
+
+local sBtn = CreateTabBtn("SCRIPTS", UDim2.new(0, 0, 0, 0), 0.33, ScriptsScroll)
+local uBtn = CreateTabBtn("UNIVERSAL", UDim2.new(0.33, 0, 0, 0), 0.33, UniScroll)
+local tBtn = CreateTabBtn("THEMES", UDim2.new(0.66, 0, 0, 0), 0.34, ThemeScroll)
+
+-- SCRIPTS DATA
+local L = function(u) return function() loadstring(game:HttpGet(u))() end end
+CreateBtn(ScriptsScroll, "FLING THINGS AND PEOPLE", "Tokra Script", function() L("https://rawscripts.net/raw/Fling-Things-and-People-Tokra-Script-134717")(); Notify("Executed", "Fling Things") end)
+CreateBtn(ScriptsScroll, "RIVALS", "Noks-Hub V2", function() L("https://rawscripts.net/raw/RIVALS-Noks-hub-keyless-v2-112582")(); Notify("Executed", "Rivals") end)
+CreateBtn(ScriptsScroll, "99 NIGHTS IN THE FOREST", "VapeVoidware", function() L("https://raw.githubusercontent.com/VapeVoidware/VW-Add/main/nightsintheforest.lua")(); Notify("Executed", "VapeVoidware") end)
+CreateBtn(ScriptsScroll, "SWING OBBY", "Pastebin Script", function() L("https://pastebin.com/raw/VJVkivY2")(); Notify("Executed", "Swing Obby") end)
+CreateBtn(ScriptsScroll, "BLOX FRUITS", "Auto-Execute", function() L("https://raw.githubusercontent.com/Overgustx2/Main/refs/heads/main/BloxFruits_25.html")(); Notify("Executed", "Blox Fruits") end)
+CreateBtn(ScriptsScroll, "BLADE BALL", "Auto-Parry", function() L("https://rawscripts.net/raw/Blade-Ball-Auto-Parry-Keyless-128675")(); Notify("Executed", "Blade Ball") end)
+
+-- UNIVERSAL DATA
+local infJumpActive = false
+local jumpConn
+CreateBtn(UniScroll, "INFINITE JUMP", "OFF", function(label)
+    infJumpActive = not infJumpActive
+    label.Text = infJumpActive and "ON" or "OFF"
+    if infJumpActive then
+        jumpConn = UserInputService.JumpRequest:Connect(function()
+            player.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
+        end)
+    else
+        if jumpConn then jumpConn:Disconnect() end
+    end
+end)
+
+local lagActive = false
+CreateBtn(UniScroll, "VERY LOW LAG", "OFF", function(label)
+    if lagActive then return end 
+    lagActive = true
+    label.Text = "ACTIVE (LOCKED)"
+    Lighting.GlobalShadows = false
+    settings().Rendering.QualityLevel = 1
+    for _, v in pairs(game:GetDescendants()) do 
+        if v:IsA("BasePart") and not v:IsDescendantOf(ScreenGui) then 
+            v.Material = "SmoothPlastic" 
+        elseif v:IsA("Decal") and not v:IsDescendantOf(ScreenGui) then 
+            v.Transparency = 1 
+        end 
+    end
+    Notify("Performance", "Lag Nuked!")
+end)
+
+CreateBtn(UniScroll, "REJOIN", "Execute", function() TeleportService:Teleport(game.PlaceId, player) end)
+
+-- FIXED SERVER HOP (Advanced Scraper)
+CreateBtn(UniScroll, "SERVER HOP", "Find Smallest Server", function()
+    local Http = game:GetService("HttpService")
+    local TPS = game:GetService("TeleportService")
+    local Api = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Desc&limit=100"
+    local function Hop()
+        local s, r = pcall(function() return Http:JSONDecode(game:HttpGet(Api)) end)
+        if s and r.data then
+            for _, v in pairs(r.data) do
+                if v.playing < v.maxPlayers and v.id ~= game.JobId then
+                    TPS:TeleportToPlaceInstance(game.PlaceId, v.id, player)
+                    return
+                end
+            end
+        end
+        Notify("Server Hop", "No better servers found.")
+    end
+    Hop()
+end)
+
+CreateBtn(UniScroll, "INFINITE YIELD", "Execute (Internal Off)", function() L("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source")() end)
+
+-- THEMES DATA
+CreateBtn(ThemeScroll, "WANNABE HECKER", "Black/Green", function() ApplyTheme("Wannabe Hecker") end, Themes["Wannabe Hecker"])
+CreateBtn(ThemeScroll, "NORMAL", "Purple/Black", function() ApplyTheme("Normal") end, Themes["Normal"])
+CreateBtn(ThemeScroll, "BEACH", "Sand/Blue", function() ApplyTheme("Beach") end, Themes["Beach"])
+CreateBtn(ThemeScroll, "BABY OIL", "Glossy Shine", function() ApplyTheme("Baby Oil") end, Themes["Baby Oil"])
+CreateBtn(ThemeScroll, "VAMP", "Opium Vibes", function() ApplyTheme("Vamp") end, Themes["Vamp"])
+
+-- LOOPS
+ApplyTheme(UserSettings.SelectedTheme)
+task.spawn(function()
+    while task.wait(0.5) do
+        local fps = math.floor(1/RunService.RenderStepped:Wait())
+        local ping = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue())
+        StatLabel.Text = "FPS: "..fps.." | PING: "..ping.."ms"
+    end
+end)
+
+Mini.MouseButton1Click:Connect(function()
+    local isMin = MainFrame.Size.Y.Offset < 100
+    TabFrame.Visible = isMin; Container.Visible = isMin
+    Tween(MainFrame, {Size = isMin and UDim2.new(0, 270, 0, 460) or UDim2.new(0, 270, 0, 55)})
+    Tween(Header, {Size = isMin and UDim2.new(1, 0, 0, 100) or UDim2.new(1, 0, 0, 55)})
+    Mini.Text = isMin and "—" or "+"
+end)
+Close.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
