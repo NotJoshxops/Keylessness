@@ -1,0 +1,331 @@
+if not game:IsLoaded() then game.Loaded:Wait() end
+
+local CoreGui = game:GetService("CoreGui")
+local Players = game:GetService("Players")
+local StarterGui = game:GetService("StarterGui")
+local TeleportService = game:GetService("TeleportService")
+local Lighting = game:GetService("Lighting")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local Stats = game:GetService("Stats")
+local HttpService = game:GetService("HttpService")
+local UserInputService = game:GetService("UserInputService")
+local player = Players.LocalPlayer
+
+-- ==========================================
+-- 1. SAVE SYSTEM
+-- ==========================================
+local SaveFile = "KeylessnessThemes.json"
+local DefaultSettings = {SelectedTheme = "Dark Glass"}
+
+local function SaveSettings(tbl)
+    pcall(function() writefile(SaveFile, HttpService:JSONEncode(tbl)) end)
+end
+
+local function LoadSettings()
+    local s, res = pcall(function() return readfile(SaveFile) end)
+    if s then 
+        local decoded = HttpService:JSONDecode(res)
+        if decoded.SelectedTheme == "iOS Liquid" or decoded.SelectedTheme == "Midnight Glass" then 
+            decoded.SelectedTheme = "Dark Glass" 
+        end
+        return decoded 
+    end
+    return DefaultSettings
+end
+
+local UserSettings = LoadSettings()
+
+-- ==========================================
+-- 2. THEMES & VIBES
+-- ==========================================
+local Themes = {
+    ["Dark Glass"] = {bg = Color3.fromRGB(15, 15, 20), top = Color3.fromRGB(15, 15, 20), accent = Color3.fromRGB(150, 150, 160), btn = Color3.fromRGB(30, 30, 35), alpha = 0.5, text = Color3.fromRGB(240, 240, 240)},
+    ["Wannabe Hecker"] = {bg = Color3.fromRGB(0, 0, 0), top = Color3.fromRGB(5, 20, 5), accent = Color3.fromRGB(0, 255, 0), btn = Color3.fromRGB(10, 30, 10), alpha = 0.2, text = Color3.fromRGB(0, 255, 0)},
+    ["Normal"] = {bg = Color3.fromRGB(15, 15, 22), top = Color3.fromRGB(20, 20, 30), accent = Color3.fromRGB(88, 101, 242), btn = Color3.fromRGB(28, 28, 38), alpha = 0.1, text = Color3.fromRGB(255, 255, 255)},
+    ["Beach"] = {bg = Color3.fromRGB(244, 226, 198), top = Color3.fromRGB(194, 178, 128), accent = Color3.fromRGB(0, 191, 255), btn = Color3.fromRGB(214, 196, 168), alpha = 0.2, text = Color3.fromRGB(40, 40, 50)},
+    ["Baby Oil"] = {bg = Color3.fromRGB(245, 245, 250), top = Color3.fromRGB(225, 230, 240), accent = Color3.fromRGB(180, 210, 255), btn = Color3.fromRGB(235, 240, 250), alpha = 0.3, text = Color3.fromRGB(40, 40, 50)},
+    ["Vamp"] = {bg = Color3.fromRGB(5, 5, 5), top = Color3.fromRGB(15, 0, 0), accent = Color3.fromRGB(255, 0, 0), btn = Color3.fromRGB(25, 5, 5), alpha = 0.2, text = Color3.fromRGB(255, 100, 100)}
+}
+
+local ThemeOrder = {"Dark Glass", "Normal", "Wannabe Hecker", "Beach", "Baby Oil", "Vamp"}
+
+local function Notify(title, text)
+    StarterGui:SetCore("SendNotification", {Title = title, Text = text, Duration = 5})
+end
+
+local function Tween(obj, props, time)
+    TweenService:Create(obj, TweenInfo.new(time or 0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), props):Play()
+end
+
+-- ==========================================
+-- 3. UI SETUP
+-- ==========================================
+local hubName = "KeylessnessHub_V12_9"
+if CoreGui:FindFirstChild(hubName) then CoreGui[hubName]:Destroy() end
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = hubName; ScreenGui.ResetOnSpawn = false; ScreenGui.Parent = CoreGui
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 300, 0, 540); MainFrame.Position = UDim2.new(0.5, -150, 0.3, 0)
+MainFrame.BorderSizePixel = 0; MainFrame.Active = true; MainFrame.ClipsDescendants = true; MainFrame.Parent = ScreenGui
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 32) 
+
+local GlassShine = Instance.new("UIGradient", MainFrame)
+GlassShine.Rotation = 45; GlassShine.Color = ColorSequence.new(Color3.new(1, 1, 1), Color3.new(1, 1, 1))
+GlassShine.Transparency = NumberSequence.new({NumberSequenceKeypoint.new(0, 0.3), NumberSequenceKeypoint.new(0.3, 0.8), NumberSequenceKeypoint.new(0.7, 0.95), NumberSequenceKeypoint.new(1, 0.5)})
+
+local MainStroke = Instance.new("UIStroke", MainFrame)
+MainStroke.Thickness = 1.2; MainStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border; MainStroke.Transparency = 0.5
+
+local Header = Instance.new("Frame")
+Header.Size = UDim2.new(1, 0, 0, 145); Header.BorderSizePixel = 0; Header.ClipsDescendants = true; Header.Parent = MainFrame
+Instance.new("UICorner", Header).CornerRadius = UDim.new(0, 32)
+
+-- BRANDING & CREDITS
+local BrandingFrame = Instance.new("Frame")
+BrandingFrame.Size = UDim2.new(1, 0, 0, 55); BrandingFrame.Position = UDim2.new(0, 0, 1, -55); BrandingFrame.BorderSizePixel = 0; BrandingFrame.ZIndex = 99; BrandingFrame.Parent = MainFrame; BrandingFrame.BackgroundTransparency = 1
+local OverlayGradient = Instance.new("UIGradient"); OverlayGradient.Rotation = -90; OverlayGradient.Transparency = NumberSequence.new({NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(0.4, 0.4), NumberSequenceKeypoint.new(1, 0)}); OverlayGradient.Parent = BrandingFrame
+
+local Branding = Instance.new("TextLabel"); Branding.Text = "K E Y L E S S N E S S"; Branding.Font = Enum.Font.GothamMedium; Branding.TextSize = 11; Branding.TextTransparency = 0.4; Branding.BackgroundTransparency = 1; Branding.Size = UDim2.new(1, 0, 0, 30); Branding.ZIndex = 100; Branding.Parent = BrandingFrame
+local CreditsLabel = Instance.new("TextLabel"); CreditsLabel.Text = "Credits: @not_seekhere & @marlehhtoo"; CreditsLabel.Font = Enum.Font.Gotham; CreditsLabel.TextSize = 9; CreditsLabel.TextTransparency = 0.6; CreditsLabel.BackgroundTransparency = 1; CreditsLabel.Position = UDim2.new(0, 0, 0, 22); CreditsLabel.Size = UDim2.new(1, 0, 0, 20); CreditsLabel.ZIndex = 100; CreditsLabel.Parent = BrandingFrame
+
+-- DRAGGING
+local dragging, dragInput, dragStart, startPos
+local dragSpeed = 0.15 
+local targetPos = MainFrame.Position
+local function update(input)
+    local delta = input.Position - dragStart
+    targetPos = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+Header.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true; dragStart = input.Position; startPos = MainFrame.Position; targetPos = startPos
+        input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then dragging = false end end)
+    end
+end)
+Header.InputChanged:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end end)
+UserInputService.InputChanged:Connect(function(input) if input == dragInput and dragging then update(input) end end)
+RunService.RenderStepped:Connect(function()
+    if MainFrame.Parent then
+        local currentPos = MainFrame.Position
+        local newXOffset = currentPos.X.Offset + (targetPos.X.Offset - currentPos.X.Offset) * dragSpeed
+        local newYOffset = currentPos.Y.Offset + (targetPos.Y.Offset - currentPos.Y.Offset) * dragSpeed
+        MainFrame.Position = UDim2.new(currentPos.X.Scale, newXOffset, currentPos.Y.Scale, newYOffset)
+    end
+end)
+
+-- HEADER ELEMENTS
+local PFP = Instance.new("ImageLabel")
+PFP.Size = UDim2.new(0, 44, 0, 44); PFP.Position = UDim2.new(0, 16, 0, 12); PFP.Image = "http://www.roblox.com/headshot-thumbnail/image?userId="..player.UserId.."&width=420&height=420&format=png"; PFP.Parent = Header; PFP.BackgroundTransparency = 1
+Instance.new("UICorner", PFP).CornerRadius = UDim.new(1, 0)
+local DisplayName = Instance.new("TextLabel")
+DisplayName.Size = UDim2.new(1, -120, 0, 22); DisplayName.Position = UDim2.new(0, 72, 0, 14); DisplayName.BackgroundTransparency = 1; DisplayName.Text = player.DisplayName; DisplayName.Font = "GothamBold"; DisplayName.TextSize = 15; DisplayName.TextXAlignment = "Left"; DisplayName.Parent = Header
+local StatLabel = Instance.new("TextLabel")
+StatLabel.Size = UDim2.new(1, -120, 0, 20); StatLabel.Position = UDim2.new(0, 72, 0, 32); StatLabel.BackgroundTransparency = 1; StatLabel.Font = "GothamMedium"; StatLabel.TextSize = 10; StatLabel.TextXAlignment = "Left"; StatLabel.Parent = Header
+local DCBtn = Instance.new("TextButton")
+DCBtn.Size = UDim2.new(1, -32, 0, 20); DCBtn.Position = UDim2.new(0, 16, 0, 70); DCBtn.BackgroundTransparency = 1; DCBtn.Text = "Join our Discord: discord.gg/srsKaTMqdr"; DCBtn.Font = Enum.Font.Gotham; DCBtn.TextSize = 10; DCBtn.Parent = Header
+DCBtn.MouseButton1Click:Connect(function() setclipboard("https://discord.gg/srsKaTMqdr"); Notify("Discord", "Link copied!") end)
+local Close = Instance.new("TextButton")
+Close.Size = UDim2.new(0, 28, 0, 28); Close.Position = UDim2.new(1, -40, 0, 20); Close.BackgroundColor3 = Color3.fromRGB(255, 80, 80); Close.BackgroundTransparency = 0.2; Close.Text = "×"; Close.TextColor3 = Color3.fromRGB(255,255,255); Close.Font = "GothamMedium"; Close.TextSize = 20; Close.Parent = Header; Instance.new("UICorner", Close).CornerRadius = UDim.new(1, 0)
+local Mini = Instance.new("TextButton")
+Mini.Size = UDim2.new(0, 28, 0, 28); Mini.Position = UDim2.new(1, -76, 0, 20); Mini.Text = "—"; Mini.BackgroundTransparency = 0.4; Mini.Font = "GothamMedium"; Mini.TextSize = 14; Mini.Parent = Header; Instance.new("UICorner", Mini).CornerRadius = UDim.new(1, 0)
+local SearchFrame = Instance.new("Frame")
+SearchFrame.Size = UDim2.new(1, -32, 0, 36); SearchFrame.Position = UDim2.new(0, 16, 0, 100); SearchFrame.Parent = Header
+Instance.new("UICorner", SearchFrame).CornerRadius = UDim.new(0, 12)
+local SearchStroke = Instance.new("UIStroke", SearchFrame)
+SearchStroke.Thickness = 1; SearchStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border; SearchStroke.Transparency = 0.6
+local SearchBox = Instance.new("TextBox")
+SearchBox.Size = UDim2.new(1, -24, 1, 0); SearchBox.Position = UDim2.new(0, 12, 0, 0); SearchBox.BackgroundTransparency = 1; SearchBox.PlaceholderText = "Search Scripts..."; SearchBox.Text = ""; SearchBox.Font = "GothamMedium"; SearchBox.TextSize = 12; SearchBox.TextXAlignment = "Left"; SearchBox.Parent = SearchFrame
+
+local TabFrame = Instance.new("Frame")
+TabFrame.Size = UDim2.new(1, -32, 0, 35); TabFrame.Position = UDim2.new(0, 16, 0, 145); TabFrame.BackgroundTransparency = 1; TabFrame.Parent = MainFrame
+local TabIndicator = Instance.new("Frame")
+TabIndicator.Size = UDim2.new(0.33, -10, 0, 3); TabIndicator.Position = UDim2.new(0, 5, 1, -3); TabIndicator.BorderSizePixel = 0; TabIndicator.Parent = TabFrame; Instance.new("UICorner", TabIndicator).CornerRadius = UDim.new(1, 0)
+
+-- THEME ENGINE
+local function ApplyTheme(themeName)
+    local data = Themes[themeName] or Themes["Dark Glass"]
+    local isLight = (data.bg.R + data.bg.G + data.bg.B) > 1.5
+    local subCol = isLight and Color3.fromRGB(100, 100, 110) or Color3.fromRGB(180, 180, 190)
+    
+    Tween(MainFrame, {BackgroundColor3 = data.bg, BackgroundTransparency = data.alpha})
+    Tween(Header, {BackgroundColor3 = data.top, BackgroundTransparency = data.alpha})
+    Tween(StatLabel, {TextColor3 = data.text})
+    Tween(Mini, {BackgroundColor3 = data.text, TextColor3 = data.bg})
+    Tween(DisplayName, {TextColor3 = data.text})
+    Tween(DCBtn, {TextColor3 = subCol})
+    Tween(TabIndicator, {BackgroundColor3 = data.text})
+    Tween(SearchFrame, {BackgroundColor3 = data.btn, BackgroundTransparency = data.alpha + 0.2})
+    Tween(SearchBox, {TextColor3 = data.text, PlaceholderColor3 = subCol})
+    Tween(Branding, {TextColor3 = data.text})
+    Tween(CreditsLabel, {TextColor3 = data.text})
+    
+    SearchStroke.Color = data.accent; MainStroke.Color = data.accent
+    
+    for _, v in pairs(MainFrame:GetDescendants()) do
+        if v:IsA("TextButton") and v.Name == "ScriptBtn" then
+            Tween(v, {BackgroundColor3 = data.btn, BackgroundTransparency = data.alpha + 0.15})
+            if v:FindFirstChild("T1") then Tween(v.T1, {TextColor3 = data.text}) end
+            if v:FindFirstChild("T2") then Tween(v.T2, {TextColor3 = subCol}) end
+            if v:FindFirstChild("WidgetStroke") then v.WidgetStroke.Color = data.accent end
+        elseif v:IsA("TextButton") and v.Parent == TabFrame then 
+            Tween(v, {TextColor3 = subCol}) 
+        end
+    end
+    UserSettings.SelectedTheme = themeName; SaveSettings(UserSettings)
+end
+
+-- BUTTON CREATOR
+local function CreateBtn(parent, name, sub, func, themeData)
+    local btn = Instance.new("TextButton"); btn.Name = "ScriptBtn"; btn.Size = UDim2.new(0, 268, 0, 65); btn.Text = ""; btn.Parent = parent; btn.AutoButtonColor = false
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 20)
+    local stroke = Instance.new("UIStroke", btn); stroke.Name = "WidgetStroke"; stroke.Thickness = 1; stroke.Transparency = 0.7; stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    local glossOverlay = Instance.new("Frame", btn); glossOverlay.Size = UDim2.new(1, 0, 1, 0); glossOverlay.BackgroundTransparency = 1; glossOverlay.BorderSizePixel = 0; Instance.new("UICorner", glossOverlay).CornerRadius = UDim.new(0, 20)
+    local overlayGrad = Instance.new("UIGradient", glossOverlay); overlayGrad.Rotation = -45; overlayGrad.Color = ColorSequence.new(Color3.new(1, 1, 1), Color3.new(1, 1, 1)); overlayGrad.Transparency = NumberSequence.new({NumberSequenceKeypoint.new(0, 0.7), NumberSequenceKeypoint.new(0.5, 1), NumberSequenceKeypoint.new(1, 1)})
+
+    local t1 = Instance.new("TextLabel"); t1.Name = "T1"; t1.Size = UDim2.new(1, -30, 0, 20); t1.Position = UDim2.new(0, 16, 0.2, 0); t1.BackgroundTransparency = 1; t1.Text = name; t1.Font = "GothamBold"; t1.TextSize = 13; t1.TextXAlignment = "Left"; t1.Parent = btn; t1.ZIndex = 2
+    local t2 = Instance.new("TextLabel"); t2.Name = "T2"; t2.Size = UDim2.new(1, -30, 0, 15); t2.Position = UDim2.new(0, 16, 0.55, 0); t2.BackgroundTransparency = 1; t2.Text = sub; t2.Font = "GothamMedium"; t2.TextSize = 10; t2.TextXAlignment = "Left"; t2.Parent = btn; t2.ZIndex = 2
+    if themeData then local p = Instance.new("Frame"); p.Size = UDim2.new(0, 16, 0, 16); p.Position = UDim2.new(1, -28, 0.5, -8); p.BackgroundColor3 = themeData.accent; p.Parent = btn; p.ZIndex = 2; Instance.new("UICorner", p).CornerRadius = UDim.new(1, 0) end
+    
+    btn.MouseEnter:Connect(function() 
+        local alpha = Themes[UserSettings.SelectedTheme].alpha
+        Tween(btn, {BackgroundTransparency = alpha - 0.1}, 0.2)
+        Tween(stroke, {Transparency = 0.2}, 0.2) 
+        Tween(glossOverlay, {BackgroundTransparency = 0.6}, 0.2)
+    end)
+    btn.MouseLeave:Connect(function() 
+        local alpha = Themes[UserSettings.SelectedTheme].alpha
+        Tween(btn, {BackgroundTransparency = alpha + 0.15}, 0.3)
+        Tween(stroke, {Transparency = 0.7}, 0.3)
+        Tween(glossOverlay, {BackgroundTransparency = 1}, 0.3)
+    end)
+    btn.MouseButton1Click:Connect(function() func(t2) end)
+end
+
+-- CONTAINERS
+local Container = Instance.new("Frame"); Container.Size = UDim2.new(1, 0, 1, -200); Container.Position = UDim2.new(0, 0, 0, 190); Container.BackgroundTransparency = 1; Container.ClipsDescendants = true; Container.Parent = MainFrame
+local function CreateScroll(name)
+    local s = Instance.new("ScrollingFrame"); s.Name = name; s.Size = UDim2.new(1, 0, 1, 0); s.BackgroundTransparency = 1; s.BorderSizePixel = 0; s.ScrollBarThickness = 0; s.Visible = false; s.Parent = Container
+    local layout = Instance.new("UIListLayout", s); layout.HorizontalAlignment = "Center"; layout.Padding = UDim.new(0, 12)
+    Instance.new("UIPadding", s).PaddingTop = UDim.new(0, 5)
+    layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function() s.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 60) end)
+    return s
+end
+local ScriptsScroll = CreateScroll("ScriptsScroll"); ScriptsScroll.Visible = true
+local UniScroll = CreateScroll("UniScroll")
+local ThemeScroll = CreateScroll("ThemeScroll")
+
+local function CreateTabBtn(name, pos, width, target)
+    local btn = Instance.new("TextButton"); btn.Size = UDim2.new(width, 0, 1, 0); btn.Position = pos; btn.BackgroundTransparency = 1; btn.Text = name; btn.Font = "GothamBold"; btn.TextSize = 10; btn.Parent = TabFrame
+    btn.MouseButton1Click:Connect(function() ScriptsScroll.Visible = (target == ScriptsScroll); UniScroll.Visible = (target == UniScroll); ThemeScroll.Visible = (target == ThemeScroll); Tween(TabIndicator, {Position = UDim2.new(pos.X.Scale, 5, 1, -3)}) end)
+    return btn
+end
+CreateTabBtn("SCRIPTS", UDim2.new(0, 0, 0, 0), 0.33, ScriptsScroll)
+CreateTabBtn("UNIVERSAL", UDim2.new(0.33, 0, 0, 0), 0.33, UniScroll)
+CreateTabBtn("THEMES", UDim2.new(0.66, 0, 0, 0), 0.34, ThemeScroll)
+
+-- SCRIPTS DATA
+local L = function(u) return function() loadstring(game:HttpGet(u))() end end
+CreateBtn(ScriptsScroll, "PROTECT THE HOUSE", "God Weapons & Spam Shot", function() loadstring(game:HttpGet("https://rawscripts.net/raw/Protect-The-House-From-Monsters-god-weapons-79983"))(); Notify("House Defense", "Executing God Weapons!") end)
+CreateBtn(ScriptsScroll, "MVS DUELS", "Zephyr V2", function() loadstring(game:HttpGet("https://rawscripts.net/raw/Murderers-VS-Sheriffs-DUELS-MVSD-Zephyr-V2-59002"))(); Notify("MVS Duels", "Executing Zephyr V2!") end)
+CreateBtn(ScriptsScroll, "LUMBER TYCOON 2", "Kron Hub | Auto-Farm & More", function() loadstring(game:HttpGet("https://rawscripts.net/raw/Lumber-Tycoon-2-Kron-Hub-20796"))(); Notify("Lumber Tycoon", "Executing Kron Hub!") end)
+CreateBtn(ScriptsScroll, "BED WARS", "CatV6 | Top Grey Button to Open", function() loadstring(game:HttpGet('https://raw.githubusercontent.com/MaxlaserTech/CatV6/main/init.lua'), 'init.lua')({}); Notify("Bed Wars", "Executing CatV6!") end)
+CreateBtn(ScriptsScroll, "FLING THINGS AND PEOPLE", "Tokra Script", function() L("https://rawscripts.net/raw/Fling-Things-and-People-Tokra-Script-134717")(); Notify("Executed", "Fling Things") end)
+CreateBtn(ScriptsScroll, "RIVALS", "Noks-Hub V2", function() L("https://rawscripts.net/raw/RIVALS-Noks-hub-keyless-v2-112582")(); Notify("Executed", "Rivals") end)
+CreateBtn(ScriptsScroll, "99 NIGHTS IN THE FOREST", "VapeVoidware", function() L("https://raw.githubusercontent.com/VapeVoidware/VW-Add/main/nightsintheforest.lua")(); Notify("Executed", "VapeVoidware") end)
+CreateBtn(ScriptsScroll, "SWING OBBY", "Pastebin Script", function() L("https://pastebin.com/raw/VJVkivY2")(); Notify("Executed", "Swing Obby") end)
+CreateBtn(ScriptsScroll, "BLOX FRUITS", "Auto-Execute", function() L("https://raw.githubusercontent.com/Overgustx2/Main/refs/heads/main/BloxFruits_25.html")(); Notify("Executed", "Blox Fruits") end)
+
+-- UNIVERSAL DATA
+CreateBtn(UniScroll, "🆔 GAME ID CHECKER", "Click to Copy Place ID", function(label)
+    local id = tostring(game.PlaceId)
+    setclipboard(id)
+    label.Text = "COPIED: " .. id
+    Notify("Game ID", "Place ID copied to clipboard!")
+    task.delay(3, function() label.Text = "Click to Copy Place ID" end)
+end)
+
+local flyActive = false; local flySpeed = 50; local flyConn
+CreateBtn(UniScroll, "✈️ FLY", "OFF", function(label)
+    flyActive = not flyActive; label.Text = flyActive and "ON" or "OFF"
+    local char = player.Character or player.CharacterAdded:Wait()
+    local root = char:WaitForChild("HumanoidRootPart")
+    if flyActive then
+        local bv = Instance.new("BodyVelocity", root); bv.Name = "FlyVelocity"; bv.MaxForce = Vector3.new(1,1,1) * 10^6; bv.Velocity = Vector3.zero
+        local bg = Instance.new("BodyGyro", root); bg.Name = "FlyGyro"; bg.MaxTorque = Vector3.new(1,1,1) * 10^6; bg.P = 10^6; bg.CFrame = root.CFrame
+        flyConn = RunService.RenderStepped:Connect(function() bv.Velocity = workspace.CurrentCamera.CFrame.LookVector * flySpeed; bg.CFrame = workspace.CurrentCamera.CFrame end)
+    else
+        if flyConn then flyConn:Disconnect() end
+        if root:FindFirstChild("FlyVelocity") then root.FlyVelocity:Destroy() end
+        if root:FindFirstChild("FlyGyro") then root.FlyGyro:Destroy() end
+    end
+end)
+
+CreateBtn(UniScroll, "🛡️ REMOVE ANTI-CHEAT", "Nuke Cheat/Sync scripts", function(label)
+    label.Text = "SCANNING..."; local count = 0
+    for _, v in pairs(game:GetDescendants()) do pcall(function() local name = v.Name:lower() if name:find("cheat") or name:find("sync") then v:Destroy() count = count + 1 end end) end
+    label.Text = "REMOVED: "..count; Notify("Cleaner", "Nuked "..count.." objects!")
+end)
+
+local infJumpActive = false; local jumpConn
+CreateBtn(UniScroll, "⚡ INFINITE JUMP", "OFF", function(label)
+    infJumpActive = not infJumpActive; label.Text = infJumpActive and "ON" or "OFF"
+    if infJumpActive then jumpConn = UserInputService.JumpRequest:Connect(function() if player.Character and player.Character:FindFirstChildOfClass("Humanoid") then player.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping") end end)
+    else if jumpConn then jumpConn:Disconnect() end end
+end)
+
+CreateBtn(UniScroll, "👟 SPEED BOOST", "OFF", function(label)
+    local speedActive = label.Text == "OFF"; label.Text = speedActive and "ON (120)" or "OFF"
+    if player.Character and player.Character:FindFirstChild("Humanoid") then player.Character.Humanoid.WalkSpeed = speedActive and 120 or 16 end
+end)
+
+CreateBtn(UniScroll, "🗑️ VERY LOW LAG", "Nuke Materials", function(label)
+    label.Text = "ACTIVE"; Lighting.GlobalShadows = false; settings().Rendering.QualityLevel = 1
+    for _, v in pairs(game:GetDescendants()) do
+        if v:IsA("BasePart") and not v:IsDescendantOf(ScreenGui) then v.Material = Enum.Material.SmoothPlastic
+        elseif v:IsA("Decal") and not v:IsDescendantOf(ScreenGui) then v.Transparency = 1 end
+    end
+    Notify("Performance", "Lag Nuked!")
+end)
+
+CreateBtn(UniScroll, "🔄 REJOIN", "Restart Instance", function() TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, player) end)
+CreateBtn(UniScroll, "📜 INFINITE YIELD", "Execute", function() L("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source")() end)
+
+-- THEMES DATA
+for _, name in ipairs(ThemeOrder) do 
+    if Themes[name] then CreateBtn(ThemeScroll, name, "Apply Theme", function() ApplyTheme(name) end, Themes[name]) end
+end
+
+-- SEARCH
+SearchBox:GetPropertyChangedSignal("Text"):Connect(function()
+    local searchText = string.lower(SearchBox.Text)
+    for _, item in pairs(ScriptsScroll:GetChildren()) do if item:IsA("TextButton") then local title = item:FindFirstChild("T1") if title then item.Visible = (searchText == "" or string.find(string.lower(title.Text), searchText)) end end end
+end)
+
+-- AUTO-LOADER
+local pId = game.PlaceId
+local function AutoLoad(url, name) Notify("Keylessness Hub", name .. " activated!"); task.spawn(function() loadstring(game:HttpGet(url))() end) end
+if pId == 115286378269814 then AutoLoad("https://rawscripts.net/raw/Protect-The-House-From-Monsters-god-weapons-79983", "House Defense") end
+if pId == 12355337193 then AutoLoad("https://rawscripts.net/raw/Murderers-VS-Sheriffs-DUELS-MVSD-Zephyr-V2-59002", "MVS Duels") end
+if pId == 13822889 then AutoLoad("https://rawscripts.net/raw/Lumber-Tycoon-2-Kron-Hub-20796", "Lumber Tycoon 2") end
+if pId == 6872265039 or pId == 6872274481 then AutoLoad("https://raw.githubusercontent.com/MaxlaserTech/CatV6/main/init.lua", "Bed Wars") end
+if pId == 17625359962 then AutoLoad("https://rawscripts.net/raw/RIVALS-Noks-hub-keyless-v2-112582", "Rivals")
+elseif pId == 6961824067 then AutoLoad("https://rawscripts.net/raw/Fling-Things-and-People-Tokra-Script-134717", "Fling Things") end
+
+ApplyTheme(UserSettings.SelectedTheme)
+task.spawn(function()
+    while task.wait(0.5) do
+        local fps = math.floor(1/RunService.RenderStepped:Wait()); local ping = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue()); StatLabel.Text = "FPS: "..fps.." | PING: "..ping.."ms"
+    end
+end)
+
+Mini.MouseButton1Click:Connect(function()
+    local isMin = MainFrame.Size.Y.Offset < 100
+    TabFrame.Visible = isMin; Container.Visible = isMin; SearchFrame.Visible = isMin; BrandingFrame.Visible = isMin
+    Tween(MainFrame, {Size = isMin and UDim2.new(0, 300, 0, 540) or UDim2.new(0, 300, 0, 60)})
+    Tween(Header, {Size = isMin and UDim2.new(1, 0, 0, 145) or UDim2.new(1, 0, 0, 60)})
+    Mini.Text = isMin and "—" or "+"
+end)
+Close.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
